@@ -12,7 +12,7 @@ export const protect = async (req, res, next) => {
   }
 
   if (!token) {
-    res.send(401).json({ msg: "No token, Not authorized" });
+    res.send(401).json({ msg: "Not authorized to access this route" });
   }
 
   try {
