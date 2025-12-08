@@ -49,11 +49,12 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth.js";
+import { storeToRefs } from "pinia";
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const { user, isAdmin } = authStore;
+const { user, isAdmin } = storeToRefs(authStore);
 
 const logout = () => {
   authStore.logout();

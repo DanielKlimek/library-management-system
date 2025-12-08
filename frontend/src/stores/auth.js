@@ -3,8 +3,9 @@ import { ref, computed } from "vue";
 import axios from "../services/axios.js";
 
 export const useAuthStore = defineStore("auth", () => {
-  const user = ref(null);
+  const user = ref(JSON.parse(localStorage.getItem("user")) || null);
   const token = ref(localStorage.getItem("token"));
+  const isLoading = ref(false);
 
   const isAuthenticated = computed(() => !!token.value);
   const isAdmin = computed(() => user.value?.role === "admin");
@@ -14,6 +15,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = data.token;
     user.value = data.user;
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
     return data;
   };
 
@@ -22,6 +24,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = data.token;
     user.value = data.user;
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
     return data;
   };
 
@@ -29,15 +32,24 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     user.value = null;
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
 
   const checkAuth = async () => {
-    if (!token.value) return false;
+    if (!token.value) {
+      isLoading.value = false;
+      return false;
+    }
+    isLoading.value = true;
     try {
-      user.value = await axios.get("/auth/me");
+      const userData = await axios.get("/auth/me");
+      user.value = userData;
+      localStorage.setItem("user", JSON.stringify(userData));
+      isLoading.value = false;
       return true;
     } catch {
       logout();
+      isLoading.value = false;
       return false;
     }
   };
@@ -47,6 +59,7 @@ export const useAuthStore = defineStore("auth", () => {
     token,
     isAuthenticated,
     isAdmin,
+    isLoading,
     login,
     register,
     logout,

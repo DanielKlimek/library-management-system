@@ -20,7 +20,7 @@ const routes = [
   {
     path: "/admin/books",
     component: AdminBooksView,
-    meta: { requiresAdmin: true, requiresAuth: true },
+    meta: { requiresAdmin: true },
   },
 ];
 
@@ -29,8 +29,13 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore();
+
+  if (authStore.token && !authStore.user) {
+    await authStore.checkAuth();
+  }
+
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next("/");
   } else if (to.meta.requiresAuth && !authStore.token) {
