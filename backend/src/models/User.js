@@ -5,55 +5,34 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: [true, "Meno je povinné"],
       trim: true,
-      minlength: [2, "Name must be at least 2 characters"],
+      minlength: [2, "Meno musí mať aspoň 2 znaky"],
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: [true, "Email je povinný"],
       unique: true,
       lowercase: true,
-      trim: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please add a valid email",
-      ],
+      match: [/^\S+@\S+\.\S+$/, "Neplatný email"],
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
+      required: [true, "Heslo je povinné"],
+      minlength: [6, "Heslo musí mať aspoň 6 znakov"],
     },
     role: {
       type: String,
-      enum: ["customer", "admin"],
-      default: "customer",
+      enum: ["user", "admin"],
+      default: "user",
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  }, 
-  {
-    timestamps: true,
-  }
+  },
+  { timestamps: true }
 );
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-  } catch (error) {
-    next(error);
-  }
+  this.password = await bcrypt.hash(this.password, 12);
 });
 
-userSchema.methods.comparePasswords = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
-
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);

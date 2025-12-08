@@ -4,76 +4,49 @@ const bookSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
+      required: [true, "Názov knihy je povinný"],
       trim: true,
-      minlength: [2, "Title must be at least 2 characters"],
     },
     author: {
       type: String,
-      required: [true, "Author is required"],
+      required: [true, "Autor je povinný"],
       trim: true,
     },
     isbn: {
       type: String,
-      required: [true, "ISBN is required"],
+      required: [true, "ISBN je povinné"],
       unique: true,
-      trim: true,
-    },
-    genre: {
-      type: String,
-      required: [true, "Genre is required"],
-      enum: [
-        "Fiction",
-        "Non-Fiction",
-        "Science",
-        "Biography",
-        "History",
-        "Fantasy",
-        "Mystery",
-        "Romance",
-        "Technology",
-      ],
+      match: [/^(?:\d{10}|\d{13})$/, "Neplatné ISBN (10 alebo 13 číslic)"],
     },
     year: {
       type: Number,
-      required: [true, "Publication year is required"],
-      min: [1000, "Year must be after 1000"],
-      max: [new Date().getFullYear(), `Year cannot be in the future`],
-    },
-    pages: {
-      type: Number,
-      required: [true, "Number of pages is required"],
-      min: [1, "Book must have at least 1 page"],
+      required: [true, "Rok vydania je povinný"],
+      min: [1000, "Rok je príliš starý"],
+      max: [
+        new Date().getFullYear() + 5,
+        "Rok nesmie byť z ďalekej budúcnosti",
+      ],
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
-      minlength: [10, "Description must be at least 10 characters"],
+      trim: true,
+      maxlength: [2000, "Popis môže mať max 2000 znakov"],
     },
-    coverImage: {
-      type: String,
-      default: "",
+    coverImage: { type: String, default: "" },
+    totalCopies: {
+      type: Number,
+      required: true,
+      min: [1, "Musí byť aspoň 1 kus"],
     },
     availableCopies: {
       type: Number,
-      required: [true, "Available copies is required"],
-      min: [0, "Available copies cannot be negative"],
-      default: 1,
+      required: true,
+      min: [0, "Počet dostupných kusov nemôže byť záporný"],
     },
-    totalCopies: {
-      type: Number,
-      required: [true, "Total copies is required"],
-      min: [1, "Total copies must be at least 1"],
-    },
-    isAvailable: {
-      type: Boolean,
-      default: true,
-    },
+    ratingAvg: { type: Number, default: 0, min: 0, max: 5 },
+    ratingCount: { type: Number, default: 0 },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const book = mongoose.model("Book", bookSchema);
-export default book;
+export default mongoose.model("Book", bookSchema);

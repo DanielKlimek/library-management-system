@@ -1,43 +1,63 @@
 import mongoose from "mongoose";
+import Book from "./Book.js";
 
 const reviewSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "User is required"],
-    },
     book: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Book",
-      required: [true, "Book is required"],
+      required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
     rating: {
       type: Number,
-      required: [true, "Rating is required"],
-      min: [1, "Rating must be at least 1"],
-      max: [5, "Rating cannot exceed 5"],
+      required: [true, "Hodnotenie je povinné"],
+      min: [1, "Minimálne 1 hviezdička"],
+      max: [5, "Maximálne 5 hviezdičiek"],
     },
     comment: {
       type: String,
-      required: [true, "Comment is required"],
       trim: true,
-      minlength: [10, "Comment must be at least 10 characters"],
-      maxlength: [500, "Comment cannot exceed 500 characters"],
-    },
-    isVerifiedPurchase: {
-      type: Boolean,
-      default: false,
+      maxlength: [500, "Komentár môže mať max 500 znakov"],
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
+reviewSchema.index({ book: 1, user: 1 }, { unique: true });
 
-reviewSchema.index({ user: 1, book: 1 }, { unique: true });
+async function updateBookRating(bookId) {
+  const Review = mongoose.model("Review");
+  const result = await Review.aggregate([
+    { $match: { book: bookId } },
+    {
+      $group: {
+        _id: null,
+        avg: { $avg: "$rating" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
 
-mongoose.model("Review", reviewSchema);
+  const avg = result.length > 0 ? Math.round(result[0].avg * 10) / 10 : 0;
+  await Book.findByIdAndUpdate(bookId, {
+    ratingAvg: avg,
+    ratingCount: result.length > 0 ? result[0].count : 0,
+  });
+}
 
-export default book;
+reviewSchema.post("save", (doc) => updateBookRating(doc.book));
+reviewSchema.post("findOneAndUpdate", async function () {
+  const doc = await this.model.findOne(this.getQuery());
+  if (doc) await updateBookRating(doc.book);
+});
+reviewSchema.post("findOneAndDelete", async function () {
+  const doc = await this.model.findOne(this.getQuery());
+  if (doc) await updateBookRating(doc.book);
+});
+
+export default mongoose.model("Review", reviewSchema);

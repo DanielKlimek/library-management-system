@@ -1,26 +1,23 @@
 export const errorHandler = (err, req, res, next) => {
-  let error = {};
-  error.message = err.message;
-
   console.error(err);
 
-  if (err.name === "CastError") {
-    const message = "Resource not found";
-    error = { message, statusCode: 404 };
+  if (err.name === "ValidationError") {
+    const errors = Object.values(err.errors).map((e) => e.message);
+    return res.status(400).json({ error: errors.join(", ") });
   }
 
   if (err.code === 11000) {
-    const message = "Duplicate field value entered";
-    error = { message, statusCode: 400 };
+    const field = Object.keys(err.keyPattern)[0];
+    return res.status(400).json({ error: `${field} už existuje` });
   }
 
-  if (err.name === "ValidationError") {
-    const message = Object.values(err.errors).map((val) => val.message);
-    error = { message, statusCode: 400 };
+  if (err.name === "JsonWebTokenError") {
+    return res.status(401).json({ error: "Neplatný token" });
   }
 
-  res.status(error.statusCode || 500).json({
-    success: false,
-    message: error.message || "Server Error",
-  });
+  if (err.status) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
+  res.status(500).json({ error: "Serverová chyba" });
 };
