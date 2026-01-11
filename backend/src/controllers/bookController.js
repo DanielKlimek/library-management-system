@@ -8,14 +8,12 @@ export const getBooks = async (req, res, next) => {
 
     let filter = {};
 
-
     if (search && search.trim()) {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { author: { $regex: search, $options: "i" } },
       ];
     }
-
 
     if (yearFrom || yearTo) {
       filter.year = {};
@@ -32,7 +30,6 @@ export const getBooks = async (req, res, next) => {
     }
 
     let books = await Book.find(filter).sort({ createdAt: -1 });
-
 
     if (minRating) {
       const minRatingNum = parseFloat(minRating);
@@ -72,7 +69,6 @@ export const getBook = async (req, res, next) => {
 export const createBook = async (req, res, next) => {
   try {
     const { title, author, isbn, year, description, totalCopies } = req.body;
-
 
     if (!title || !author || !isbn || !year || !totalCopies) {
       const error = new Error("Všetky povinné polia musia byť vyplnené");

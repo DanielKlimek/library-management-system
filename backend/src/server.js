@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import bookRoutes from "./routes/bookRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import loanRoutes from "./routes/loanRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/loans", loanRoutes);
 
 app.use(errorHandler);
 
@@ -30,3 +32,5 @@ mongoose
     });
   })
   .catch((err) => console.log("MongoDB chyba:", err));
+
+
