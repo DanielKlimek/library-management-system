@@ -148,6 +148,20 @@ export const deleteBook = async (req, res, next) => {
       throw error;
     }
 
+    const Loan = (await import("../models/Loan.js")).default;
+    const activeLoans = await Loan.find({
+      book: req.params.id,
+      status: { $in: ["active", "overdue"] },
+    });
+
+    if (activeLoans.length > 0) {
+      const error = new Error(
+        "Knihu nie je možné vymazať, pretože je momentálne požičaná"
+      );
+      error.status = 400;
+      throw error;
+    }
+
     if (book.coverImage) {
       const imagePath = `.${book.coverImage}`;
       if (fs.existsSync(imagePath)) {

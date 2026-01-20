@@ -4,6 +4,9 @@ import RegisterView from "../views/RegisterView.vue";
 import BooksView from "../views/BooksView.vue";
 import BookDetailView from "../views/BookDetailView.vue";
 import AdminBooksView from "../views/AdminBooksView.vue";
+import LoansView from "../views/LoansView.vue";
+import LoanDetailView from "../views/LoanDetailView.vue";
+import AdminLoansView from "../views/AdminLoansView.vue";
 
 import { useAuthStore } from "../stores/auth.js";
 
@@ -20,6 +23,17 @@ const routes = [
   {
     path: "/admin/books",
     component: AdminBooksView,
+    meta: { requiresAdmin: true },
+  },
+  { path: "/loans", component: LoansView, meta: { requiresAuth: true } },
+  {
+    path: "/loans/:id",
+    component: LoanDetailView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/admin/loans",
+    component: AdminLoansView,
     meta: { requiresAdmin: true },
   },
 ];

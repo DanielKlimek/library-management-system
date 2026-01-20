@@ -18,7 +18,7 @@ const router = express.Router();
 router.get("/", protect, getLoans);
 router.get("/stats", protect, admin, getLoanStats);
 router.get("/:id", protect, getLoan);
-router.post("/", protect, admin, createLoan);
+router.post("/", protect, createLoan);
 router.put("/:id", protect, admin, updateLoan);
 router.delete("/:id", protect, admin, deleteLoan);
 

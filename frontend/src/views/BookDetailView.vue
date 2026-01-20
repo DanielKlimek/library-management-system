@@ -45,9 +45,31 @@
               </p>
             </div>
 
-            <p v-if="book.description" class="text-gray-700 leading-relaxed">
+            <p v-if="book.description" class="text-gray-700 leading-relaxed mb-6">
               {{ book.description }}
             </p>
+
+            <div v-if="!isAdmin && user" class="mt-6">
+              <button
+                v-if="book.availableCopies > 0 && !hasActiveLoan"
+                @click="showLoanModal = true"
+                class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-lg"
+              >
+                📚 Požičať knihu
+              </button>
+              <div
+                v-else-if="hasActiveLoan"
+                class="w-full px-6 py-3 bg-gray-200 text-gray-600 rounded-lg text-center font-medium"
+              >
+                ✓ Už máte požičanú
+              </div>
+              <div
+                v-else
+                class="w-full px-6 py-3 bg-red-100 text-red-600 rounded-lg text-center font-medium"
+              >
+                ⚠ Momentálne nedostupné
+              </div>
+            </div>
           </div>
         </div>
 
@@ -138,28 +160,87 @@
         </div>
       </div>
     </div>
+
+    <Modal :show="showLoanModal" title="Požičať knihu" @close="showLoanModal = false">
+      <form @submit.prevent="handleLoanBook">
+        <div class="mb-4">
+          <p class="text-gray-700 mb-4">
+            Chcete si požičať knihu <strong>{{ book?.title }}</strong>?
+          </p>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Dátum vrátenia *
+          </label>
+          <input
+            v-model="loanForm.dueDate"
+            type="date"
+            :min="minDueDate"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+          <p class="text-sm text-gray-500 mt-1">
+            Minimálne dnes, odporúčame 14-30 dní
+          </p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Poznámky (voliteľné)
+          </label>
+          <textarea
+            v-model="loanForm.notes"
+            rows="3"
+            maxlength="500"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Voliteľné poznámky..."
+          ></textarea>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+          <button
+            type="button"
+            @click="showLoanModal = false"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+          >
+            Zrušiť
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+          >
+            Požičať
+          </button>
+        </div>
+      </form>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useBooksStore } from "../stores/books.js";
 import { useReviewsStore } from "../stores/reviews.js";
+import { useLoansStore } from "../stores/loans.js";
 import { useAuthStore } from "../stores/auth.js";
 import Navbar from "../components/Navbar.vue";
 import LoadingSpinner from "../components/LoadingSpinner.vue";
+import Modal from "../components/Modal.vue";
 
 const route = useRoute();
 const authStore = useAuthStore();
 const user = computed(() => authStore.user);
+const isAdmin = computed(() => authStore.isAdmin);
 
 const booksStore = useBooksStore();
 const reviewsStore = useReviewsStore();
+const loansStore = useLoansStore();
 
 const book = computed(() => booksStore.currentBook);
 const reviews = computed(() => reviewsStore.reviews);
 const loading = computed(() => booksStore.loading || reviewsStore.loading);
+
+const showLoanModal = ref(false);
+const hasActiveLoan = ref(false);
 
 const reviewForm = reactive({
   rating: 0,
@@ -171,11 +252,36 @@ const reviewErrors = reactive({
   comment: "",
 });
 
+const loanForm = reactive({
+  dueDate: "",
+  notes: "",
+});
+
+const minDueDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+});
+
 const validateReviewComment = () => {
   if (reviewForm.comment.length > 500) {
     reviewErrors.comment = "Komentár môže mať max 500 znakov";
   } else {
     reviewErrors.comment = "";
+  }
+};
+
+const checkActiveLoan = async () => {
+  if (!user.value) return;
+  try {
+    const userId = user.value.id || user.value._id;
+    const userLoans = await loansStore.fetchUserLoans(userId);
+    hasActiveLoan.value = userLoans.some(
+      (loan) =>
+        loan.book._id === route.params.id &&
+        (loan.status === "active" || loan.status === "overdue")
+    );
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -185,8 +291,32 @@ const loadData = async () => {
       booksStore.fetchBook(route.params.id),
       reviewsStore.fetchReviewsByBook(route.params.id),
     ]);
+    await checkActiveLoan();
   } catch (err) {
     console.error(err);
+  }
+};
+
+const handleLoanBook = async () => {
+  if (!user.value) return;
+
+  try {
+    const userId = user.value.id || user.value._id;
+    await loansStore.createLoan({
+      user: userId,
+      book: route.params.id,
+      dueDate: loanForm.dueDate,
+      notes: loanForm.notes || undefined,
+    });
+
+    showLoanModal.value = false;
+    loanForm.dueDate = "";
+    loanForm.notes = "";
+
+    await loadData();
+    alert("Kniha úspešne požičaná!");
+  } catch (err) {
+    alert("Chyba pri požičaní knihy: " + (err.message || "Neznáma chyba"));
   }
 };
 

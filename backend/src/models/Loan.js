@@ -22,9 +22,9 @@ const loanSchema = new mongoose.Schema(
       required: [true, "Dátum vrátenia je povinný"],
       validate: {
         validator: function (value) {
-          return value > this.loanDate;
+          return value >= this.loanDate;
         },
-        message: "Dátum vrátenia musí byť po dátume požičania",
+        message: "Dátum vrátenia musí byť po alebo rovný dátumu požičania",
       },
     },
     returnDate: {
@@ -65,11 +65,10 @@ loanSchema.index({ user: 1, status: 1 });
 loanSchema.index({ book: 1, status: 1 });
 loanSchema.index({ dueDate: 1, status: 1 });
 
-loanSchema.pre("save", function (next) {
+loanSchema.pre("save", function () {
   if (this.status === "active" && this.dueDate < new Date() && !this.returnDate) {
     this.status = "overdue";
   }
-  next();
 });
 
 loanSchema.methods.calculateFine = function () {

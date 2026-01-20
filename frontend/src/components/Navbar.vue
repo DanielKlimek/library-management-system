@@ -16,11 +16,27 @@
           </router-link>
 
           <router-link
+            v-if="!isAdmin"
+            to="/loans"
+            class="text-gray-700 hover:text-purple-600 transition"
+          >
+            Požičania
+          </router-link>
+
+          <router-link
             v-if="isAdmin"
             to="/admin/books"
             class="text-gray-700 hover:text-purple-600 transition"
           >
-            Admin
+            Knihy
+          </router-link>
+
+          <router-link
+            v-if="isAdmin"
+            to="/admin/loans"
+            class="text-gray-700 hover:text-purple-600 transition"
+          >
+            Požičania
           </router-link>
 
           <div v-if="user" class="flex gap-3 items-center">
