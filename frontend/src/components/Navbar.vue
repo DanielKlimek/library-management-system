@@ -2,7 +2,7 @@
   <nav class="bg-white shadow-md">
     <div class="container mx-auto px-4">
       <div class="flex justify-between items-center h-16">
-        <router-link to="/books" class="text-2xl font-bold text-purple-600">
+        <router-link to="/books" class="text-2xl font-bold gradient-text">
           📚 Knižnica
         </router-link>
 
@@ -43,7 +43,7 @@
             <span class="text-gray-600">{{ user.name }}</span>
             <button
               @click="logout"
-              class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition btn-ripple"
             >
               Odhlásiť
             </button>

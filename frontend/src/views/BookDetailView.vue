@@ -23,7 +23,7 @@
           </div>
 
           <div>
-            <h1 class="text-4xl font-bold mb-4">{{ book.title }}</h1>
+            <h1 class="text-4xl font-bold mb-4 gradient-text">{{ book.title }}</h1>
             <p class="text-2xl text-gray-600 mb-4">{{ book.author }}</p>
 
             <div class="flex items-center gap-2 mb-6">
@@ -53,7 +53,7 @@
               <button
                 v-if="book.availableCopies > 0 && !hasActiveLoan"
                 @click="showLoanModal = true"
-                class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-lg"
+                class="w-full px-6 py-3 btn-primary btn-ripple text-white rounded-lg font-medium text-lg"
               >
                 📚 Požičať knihu
               </button>
@@ -231,6 +231,7 @@ import { useBooksStore } from "../stores/books.js";
 import { useReviewsStore } from "../stores/reviews.js";
 import { useLoansStore } from "../stores/loans.js";
 import { useAuthStore } from "../stores/auth.js";
+import { reviewValidators, loanValidators, hasErrors } from "../validators";
 import Navbar from "../components/Navbar.vue";
 import LoadingSpinner from "../components/LoadingSpinner.vue";
 import Modal from "../components/Modal.vue";
@@ -277,29 +278,15 @@ const minDueDate = computed(() => {
 });
 
 const validateLoanDueDate = () => {
-  if (!loanForm.dueDate) {
-    loanErrors.dueDate = "Dátum vrátenia je povinný";
-  } else if (new Date(loanForm.dueDate) < new Date(minDueDate.value)) {
-    loanErrors.dueDate = "Dátum vrátenia nemôže byť v minulosti";
-  } else {
-    loanErrors.dueDate = "";
-  }
+  loanErrors.dueDate = loanValidators.dueDate(loanForm.dueDate, minDueDate.value);
 };
 
 const validateLoanNotes = () => {
-  if (loanForm.notes && loanForm.notes.length > 500) {
-    loanErrors.notes = "Poznámky môžu mať max 500 znakov";
-  } else {
-    loanErrors.notes = "";
-  }
+  loanErrors.notes = loanValidators.notes(loanForm.notes);
 };
 
 const validateReviewComment = () => {
-  if (reviewForm.comment.length > 500) {
-    reviewErrors.comment = "Komentár môže mať max 500 znakov";
-  } else {
-    reviewErrors.comment = "";
-  }
+  reviewErrors.comment = reviewValidators.comment(reviewForm.comment);
 };
 
 const checkActiveLoan = async () => {
@@ -335,7 +322,7 @@ const handleLoanBook = async () => {
   validateLoanDueDate();
   validateLoanNotes();
 
-  if (loanErrors.dueDate || loanErrors.notes) return;
+  if (hasErrors(loanErrors)) return;
 
   try {
     const userId = user.value.id || user.value._id;
@@ -363,10 +350,8 @@ const handleSubmitReview = async () => {
   reviewErrors.rating = "";
   reviewErrors.comment = "";
 
-  if (reviewForm.rating === 0) {
-    reviewErrors.rating = "Zvoľte hodnotenie";
-    return;
-  }
+  reviewErrors.rating = reviewValidators.rating(reviewForm.rating);
+  if (reviewErrors.rating) return;
 
   validateReviewComment();
   if (reviewErrors.comment) return;

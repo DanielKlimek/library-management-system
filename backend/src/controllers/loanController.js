@@ -325,6 +325,180 @@ export const getLoanStats = async (req, res, next) => {
   }
 };
 
+export const requestExtension = async (req, res, next) => {
+  try {
+    const { days, message } = req.body;
+
+    if (!days || days <= 0) {
+      const error = new Error("Počet dní musí byť kladné číslo");
+      error.status = 400;
+      throw error;
+    }
+
+    if (days > 30) {
+      const error = new Error("Maximálne je možné požiadať o predĺženie o 30 dní");
+      error.status = 400;
+      throw error;
+    }
+
+    const loan = await Loan.findById(req.params.id);
+
+    if (!loan) {
+      const error = new Error("Požičanie nenájdené");
+      error.status = 404;
+      throw error;
+    }
+
+    if (loan.user.toString() !== req.userId) {
+      const error = new Error("Nemáte oprávnenie na túto akciu");
+      error.status = 403;
+      throw error;
+    }
+
+    if (loan.status === "returned") {
+      const error = new Error("Vrátené požičanie nemožno predĺžiť");
+      error.status = 400;
+      throw error;
+    }
+
+    if (loan.extensionRequest && loan.extensionRequest.status === "pending") {
+      const error = new Error("Už máte čakajúcu žiadosť o predĺženie");
+      error.status = 400;
+      throw error;
+    }
+
+    loan.extensionRequest = {
+      requestedDays: parseInt(days),
+      requestedAt: new Date(),
+      status: "pending",
+      message: message || null,
+    };
+
+    await loan.save();
+
+    const updatedLoan = await Loan.findById(loan._id)
+      .populate("user", "name email")
+      .populate("book", "title author isbn coverImage");
+
+    res.json(updatedLoan);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const approveExtension = async (req, res, next) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+
+    if (!loan) {
+      const error = new Error("Požičanie nenájdené");
+      error.status = 404;
+      throw error;
+    }
+
+    if (!loan.extensionRequest || loan.extensionRequest.status !== "pending") {
+      const error = new Error("Žiadna čakajúca žiadosť o predĺženie");
+      error.status = 400;
+      throw error;
+    }
+
+    const newDueDate = new Date(loan.dueDate);
+    newDueDate.setDate(newDueDate.getDate() + loan.extensionRequest.requestedDays);
+    loan.dueDate = newDueDate;
+
+    if (loan.status === "overdue") {
+      loan.status = "active";
+    }
+
+    loan.extensionRequest.status = "approved";
+
+    await loan.save();
+
+    const updatedLoan = await Loan.findById(loan._id)
+      .populate("user", "name email")
+      .populate("book", "title author isbn coverImage");
+
+    res.json(updatedLoan);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const rejectExtension = async (req, res, next) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+
+    if (!loan) {
+      const error = new Error("Požičanie nenájdené");
+      error.status = 404;
+      throw error;
+    }
+
+    if (!loan.extensionRequest || loan.extensionRequest.status !== "pending") {
+      const error = new Error("Žiadna čakajúca žiadosť o predĺženie");
+      error.status = 400;
+      throw error;
+    }
+
+    loan.extensionRequest.status = "rejected";
+
+    await loan.save();
+
+    const updatedLoan = await Loan.findById(loan._id)
+      .populate("user", "name email")
+      .populate("book", "title author isbn coverImage");
+
+    res.json(updatedLoan);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const userReturnLoan = async (req, res, next) => {
+  try {
+    const loan = await Loan.findById(req.params.id).populate("book");
+
+    if (!loan) {
+      const error = new Error("Požičanie nenájdené");
+      error.status = 404;
+      throw error;
+    }
+
+    if (loan.user.toString() !== req.userId) {
+      const error = new Error("Nemáte oprávnenie na túto akciu");
+      error.status = 403;
+      throw error;
+    }
+
+    if (loan.status === "returned") {
+      const error = new Error("Kniha už bola vrátená");
+      error.status = 400;
+      throw error;
+    }
+
+    loan.returnDate = new Date();
+    loan.status = "returned";
+
+    loan.calculateFine();
+
+    await loan.save();
+
+    const book = await Book.findById(loan.book._id);
+    if (book) {
+      book.availableCopies += 1;
+      await book.save();
+    }
+
+    const returnedLoan = await Loan.findById(loan._id)
+      .populate("user", "name email")
+      .populate("book", "title author isbn coverImage");
+
+    res.json(returnedLoan);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const deleteLoan = async (req, res, next) => {
   try {
     const loan = await Loan.findById(req.params.id).populate("book");
@@ -341,6 +515,35 @@ export const deleteLoan = async (req, res, next) => {
         book.availableCopies += 1;
         await book.save();
       }
+    }
+
+    await Loan.findByIdAndDelete(req.params.id);
+    res.json({ message: "Požičanie vymazané" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const userDeleteLoan = async (req, res, next) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+
+    if (!loan) {
+      const error = new Error("Požičanie nenájdené");
+      error.status = 404;
+      throw error;
+    }
+
+    if (loan.user.toString() !== req.userId) {
+      const error = new Error("Nemáte oprávnenie na túto akciu");
+      error.status = 403;
+      throw error;
+    }
+
+    if (loan.status !== "returned") {
+      const error = new Error("Môžete vymazať len vrátené požičanie");
+      error.status = 400;
+      throw error;
     }
 
     await Loan.findByIdAndDelete(req.params.id);

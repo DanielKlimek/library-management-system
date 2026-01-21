@@ -7,7 +7,7 @@
       v-if="book.coverImage"
       :src="`http://localhost:5000${book.coverImage}`"
       :alt="book.title"
-      class="w-full h-64 object-cover rounded-lg mb-3"
+      class="w-full h-64 object-cover rounded-lg mb-3 hover-scale"
     />
     <div
       v-else
@@ -30,8 +30,10 @@
     <div class="flex justify-between text-sm">
       <span class="text-gray-500">{{ book.year }}</span>
       <span
+        class="tooltip-container"
         :class="book.availableCopies > 0 ? 'text-green-600' : 'text-red-600'"
       >
+        <span class="tooltip">{{ book.availableCopies > 0 ? 'Môžete si požičať' : 'Všetky kusy sú požičané' }}</span>
         {{
           book.availableCopies > 0
             ? `Dostupné: ${book.availableCopies}`

@@ -94,11 +94,67 @@ export const useLoansStore = defineStore("loans", () => {
     if (index !== -1) {
       loans.value[index] = data;
     }
+    if (currentLoan.value && currentLoan.value._id === id) {
+      currentLoan.value = data;
+    }
+    return data;
+  };
+
+  const userReturnLoan = async (id) => {
+    const data = await axios.post(`/loans/${id}/user-return`);
+    const index = loans.value.findIndex((l) => l._id === id);
+    if (index !== -1) {
+      loans.value[index] = data;
+    }
+    if (currentLoan.value && currentLoan.value._id === id) {
+      currentLoan.value = data;
+    }
+    return data;
+  };
+
+  const requestExtension = async (id, days, message) => {
+    const data = await axios.post(`/loans/${id}/request-extension`, { days, message });
+    const index = loans.value.findIndex((l) => l._id === id);
+    if (index !== -1) {
+      loans.value[index] = data;
+    }
+    if (currentLoan.value && currentLoan.value._id === id) {
+      currentLoan.value = data;
+    }
+    return data;
+  };
+
+  const approveExtension = async (id) => {
+    const data = await axios.post(`/loans/${id}/approve-extension`);
+    const index = loans.value.findIndex((l) => l._id === id);
+    if (index !== -1) {
+      loans.value[index] = data;
+    }
+    if (currentLoan.value && currentLoan.value._id === id) {
+      currentLoan.value = data;
+    }
+    return data;
+  };
+
+  const rejectExtension = async (id) => {
+    const data = await axios.post(`/loans/${id}/reject-extension`);
+    const index = loans.value.findIndex((l) => l._id === id);
+    if (index !== -1) {
+      loans.value[index] = data;
+    }
+    if (currentLoan.value && currentLoan.value._id === id) {
+      currentLoan.value = data;
+    }
     return data;
   };
 
   const deleteLoan = async (id) => {
     await axios.delete(`/loans/${id}`);
+    loans.value = loans.value.filter((l) => l._id !== id);
+  };
+
+  const userDeleteLoan = async (id) => {
+    await axios.delete(`/loans/${id}/user-delete`);
     loans.value = loans.value.filter((l) => l._id !== id);
   };
 
@@ -116,6 +172,11 @@ export const useLoansStore = defineStore("loans", () => {
     updateLoan,
     returnLoan,
     extendLoan,
+    userReturnLoan,
+    requestExtension,
+    approveExtension,
+    rejectExtension,
     deleteLoan,
+    userDeleteLoan,
   };
 });

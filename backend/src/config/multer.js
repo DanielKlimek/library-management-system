@@ -3,7 +3,6 @@ import path from "path";
 import fs from "fs";
 
 
-//dokumentacia + AI pomoc
 if (!fs.existsSync("./uploads")) {
   fs.mkdirSync("./uploads");
 }

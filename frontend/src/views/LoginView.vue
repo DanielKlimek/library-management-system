@@ -47,7 +47,9 @@
         </button>
       </form>
 
-      <p class="text-center mt-4 text-gray-600">
+      <div class="divider-text my-6">alebo</div>
+
+      <p class="text-center text-gray-600">
         Nemáte účet?
         <router-link to="/register" class="text-purple-600 hover:underline">
           Zaregistrujte sa
@@ -61,6 +63,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth.js";
+import { userValidators, hasErrors } from "../validators";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -79,30 +82,18 @@ const errors = reactive({
 const loading = ref(false);
 
 const validateEmail = () => {
-  if (!form.email) {
-    errors.email = "Email je povinný";
-  } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-    errors.email = "Neplatný email";
-  } else {
-    errors.email = "";
-  }
+  errors.email = userValidators.email(form.email);
 };
 
 const validatePassword = () => {
-  if (!form.password) {
-    errors.password = "Heslo je povinné";
-  } else if (form.password.length < 6) {
-    errors.password = "Heslo musí mať aspoň 6 znakov";
-  } else {
-    errors.password = "";
-  }
+  errors.password = userValidators.password(form.password);
 };
 
 const handleLogin = async () => {
   validateEmail();
   validatePassword();
 
-  if (errors.email || errors.password) return;
+  if (hasErrors(errors)) return;
 
   loading.value = true;
   errors.submit = "";

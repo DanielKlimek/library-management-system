@@ -4,10 +4,10 @@
 
     <div class="container mx-auto px-4 py-8">
       <div class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800">Správa kníh</h1>
+        <h1 class="text-4xl font-bold gradient-text">Správa kníh</h1>
         <button
           @click="openCreateModal"
-          class="px-6 py-3 btn-primary text-white rounded-lg"
+          class="px-6 py-3 btn-primary btn-ripple text-white rounded-lg"
         >
           + Pridať knihu
         </button>
@@ -58,13 +58,13 @@
                 <div class="flex gap-2">
                   <button
                     @click="openEditModal(book)"
-                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 hover-scale"
                   >
                     Upraviť
                   </button>
                   <button
                     @click="handleDelete(book._id)"
-                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 hover-scale"
                   >
                     Vymazať
                   </button>
@@ -205,6 +205,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import { useBooksStore } from "../stores/books.js";
+import { bookValidators, hasErrors } from "../validators";
 import Navbar from "../components/Navbar.vue";
 import Modal from "../components/Modal.vue";
 import LoadingSpinner from "../components/LoadingSpinner.vue";
@@ -238,74 +239,34 @@ const errors = reactive({
 });
 
 const validateTitle = () => {
-  if (!form.title) {
-    errors.title = "Názov je povinný";
-  } else {
-    errors.title = "";
-  }
+  errors.title = bookValidators.title(form.title);
 };
 
 const validateAuthor = () => {
-  if (!form.author) {
-    errors.author = "Autor je povinný";
-  } else {
-    errors.author = "";
-  }
+  errors.author = bookValidators.author(form.author);
 };
 
 const validateISBN = () => {
-  if (!form.isbn) {
-    errors.isbn = "ISBN je povinné";
-  } else if (!/^(?:\d{10}|\d{13})$/.test(form.isbn)) {
-    errors.isbn = "ISBN musí mať 10 alebo 13 číslic";
-  } else {
-    errors.isbn = "";
-  }
+  errors.isbn = bookValidators.isbn(form.isbn);
 };
 
 const validateYear = () => {
-  const year = parseInt(form.year);
-  const currentYear = new Date().getFullYear();
-  if (!form.year) {
-    errors.year = "Rok je povinný";
-  } else if (year < 1000) {
-    errors.year = "Rok je príliš starý";
-  } else if (year > currentYear + 5) {
-    errors.year = "Rok nesmie byť z ďalekej budúcnosti";
-  } else {
-    errors.year = "";
-  }
+  errors.year = bookValidators.year(form.year);
 };
 
 const validateDescription = () => {
-  if (form.description && form.description.length > 2000) {
-    errors.description = "Popis môže mať max 2000 znakov";
-  } else {
-    errors.description = "";
-  }
+  errors.description = bookValidators.description(form.description);
 };
 
 const validateTotalCopies = () => {
-  const copies = parseInt(form.totalCopies);
-  if (!form.totalCopies) {
-    errors.totalCopies = "Počet kusov je povinný";
-  } else if (copies < 1) {
-    errors.totalCopies = "Musí byť aspoň 1 kus";
-  } else {
-    errors.totalCopies = "";
-  }
+  errors.totalCopies = bookValidators.totalCopies(form.totalCopies);
 };
 
 const handleFileChange = (e) => {
   const file = e.target.files[0];
   if (file) {
-    if (file.size > 5 * 1024 * 1024) {
-      errors.file = "Obrázok môže mať max 5MB";
-      form.coverImage = null;
-    } else {
-      errors.file = "";
-      form.coverImage = file;
-    }
+    errors.file = bookValidators.coverImage(file);
+    form.coverImage = errors.file ? null : file;
   }
 };
 
@@ -351,7 +312,7 @@ const handleSubmit = async () => {
   validateDescription();
   validateTotalCopies();
 
-  if (Object.values(errors).some((err) => err)) return;
+  if (hasErrors(errors)) return;
 
   submitting.value = true;
 

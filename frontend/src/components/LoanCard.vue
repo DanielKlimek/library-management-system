@@ -41,10 +41,12 @@
             class="inline-block px-3 py-1 rounded-full text-sm font-medium"
             :class="statusClass"
           >
+            <span v-if="props.loan.status === 'active'" class="status-dot bg-green-500 mr-1"></span>
+            <span v-else-if="props.loan.status === 'overdue'" class="status-dot bg-red-500 mr-1"></span>
             {{ statusText }}
           </span>
 
-          <span v-if="loan.fine > 0" class="text-red-600 font-semibold text-sm">
+          <span v-if="loan.fine > 0" class="text-red-600 font-semibold text-sm pulse-badge">
             💰 Pokuta: {{ loan.fine }}€
           </span>
 

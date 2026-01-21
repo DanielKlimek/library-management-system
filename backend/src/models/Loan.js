@@ -57,6 +57,27 @@ const loanSchema = new mongoose.Schema(
       maxlength: [500, "Poznámky môžu mať max 500 znakov"],
       default: null,
     },
+    extensionRequest: {
+      requestedDays: {
+        type: Number,
+        default: null,
+      },
+      requestedAt: {
+        type: Date,
+        default: null,
+      },
+      status: {
+        type: String,
+        enum: ["pending", "approved", "rejected", null],
+        default: null,
+      },
+      message: {
+        type: String,
+        trim: true,
+        maxlength: [500, "Správa môže mať max 500 znakov"],
+        default: null,
+      },
+    },
   },
   { timestamps: true }
 );

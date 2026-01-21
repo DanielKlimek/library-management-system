@@ -3,9 +3,9 @@
     <Navbar />
 
     <div class="container mx-auto px-4 py-8">
-      <h1 class="text-4xl font-bold mb-8 text-gray-800">Naša knižnica</h1>
+      <h1 class="text-4xl font-bold mb-8 gradient-text">Naša knižnica</h1>
 
-      <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div class="glass-card rounded-xl shadow-md p-6 mb-8">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Filtrovať knihy</h2>
         <div class="grid md:grid-cols-3 gap-4">
           <div>
@@ -77,13 +77,13 @@
               Dostupnosť
             </label>
             <select
-              v-model="filters.available"
+              v-model="filters.availability"
               @change="applyFilters"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
             >
               <option value="">Všetky knihy</option>
-              <option value="true">Len dostupné</option>
-              <option value="false">Nedostupné</option>
+              <option value="available">Len dostupné</option>
+              <option value="unavailable">Nedostupné</option>
             </select>
           </div>
 
@@ -136,7 +136,7 @@ const filters = reactive({
   yearFrom: "",
   yearTo: "",
   minRating: 0,
-  available: "",
+  availability: "",
 });
 
 const loadBooks = async () => {
@@ -147,7 +147,7 @@ const loadBooks = async () => {
     if (filters.yearFrom) params.yearFrom = filters.yearFrom;
     if (filters.yearTo) params.yearTo = filters.yearTo;
     if (filters.minRating > 0) params.minRating = filters.minRating;
-    if (filters.available !== "") params.available = filters.available;
+    if (filters.availability) params.availability = filters.availability;
 
     await booksStore.fetchBooks(params);
   } catch (err) {
@@ -163,6 +163,7 @@ const applyFilters = () => {
   }, 300);
 };
 
+
 const setMinRating = (rating) => {
   filters.minRating = rating;
   applyFilters();
@@ -173,7 +174,7 @@ const resetFilters = () => {
   filters.yearFrom = "";
   filters.yearTo = "";
   filters.minRating = 0;
-  filters.available = "";
+  filters.availability = "";
   loadBooks();
 };
 
