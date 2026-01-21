@@ -57,7 +57,9 @@
                 <span class="text-xl">📅</span>
                 <div>
                   <p class="font-semibold">Dátum požičania</p>
-                  <p class="text-sm text-gray-600">{{ formatDate(loan.loanDate) }}</p>
+                  <p class="text-sm text-gray-600">
+                    {{ formatDate(loan.loanDate) }}
+                  </p>
                 </div>
               </div>
 
@@ -65,22 +67,36 @@
                 <span class="text-xl">⏰</span>
                 <div>
                   <p class="font-semibold">Dátum vrátenia</p>
-                  <p class="text-sm text-gray-600">{{ formatDate(loan.dueDate) }}</p>
-                  <p v-if="daysRemaining !== null" class="text-sm" :class="daysRemainingClass">
+                  <p class="text-sm text-gray-600">
+                    {{ formatDate(loan.dueDate) }}
+                  </p>
+                  <p
+                    v-if="daysRemaining !== null"
+                    class="text-sm"
+                    :class="daysRemainingClass"
+                  >
                     {{ daysRemainingText }}
                   </p>
                 </div>
               </div>
 
-              <div v-if="loan.returnDate" class="flex items-center gap-3 text-gray-700">
+              <div
+                v-if="loan.returnDate"
+                class="flex items-center gap-3 text-gray-700"
+              >
                 <span class="text-xl">✓</span>
                 <div>
                   <p class="font-semibold">Skutočný dátum vrátenia</p>
-                  <p class="text-sm text-gray-600">{{ formatDate(loan.returnDate) }}</p>
+                  <p class="text-sm text-gray-600">
+                    {{ formatDate(loan.returnDate) }}
+                  </p>
                 </div>
               </div>
 
-              <div v-if="loan.fine > 0" class="flex items-center gap-3 text-red-600">
+              <div
+                v-if="loan.fine > 0"
+                class="flex items-center gap-3 text-red-600"
+              >
                 <span class="text-xl">💰</span>
                 <div>
                   <p class="font-semibold">Pokuta</p>
@@ -88,7 +104,10 @@
                 </div>
               </div>
 
-              <div v-if="loan.notes" class="flex items-center gap-3 text-gray-700">
+              <div
+                v-if="loan.notes"
+                class="flex items-center gap-3 text-gray-700"
+              >
                 <span class="text-xl">📝</span>
                 <div>
                   <p class="font-semibold">Poznámky</p>
@@ -97,7 +116,10 @@
               </div>
             </div>
 
-            <div v-if="isAdmin && loan.status !== 'returned'" class="flex gap-3">
+            <div
+              v-if="isAdmin && loan.status !== 'returned'"
+              class="flex gap-3"
+            >
               <button
                 @click="showExtendModal = true"
                 class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
@@ -125,19 +147,34 @@
       </div>
     </div>
 
-    <Modal :show="showExtendModal" title="Predĺžiť požičanie" @close="showExtendModal = false">
+    <Modal
+      :show="showExtendModal"
+      title="Predĺžiť požičanie"
+      @close="showExtendModal = false"
+    >
       <form @submit.prevent="handleExtend">
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            Počet dní
+            Počet dní *
           </label>
           <input
             v-model.number="extendDays"
+            @blur="validateExtendDays"
             type="number"
             min="1"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            max="365"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            :class="{
+              'border-red-500': extendErrors.days,
+              'border-gray-300': !extendErrors.days,
+            }"
           />
+          <p v-if="extendErrors.days" class="text-red-500 text-sm mt-1">
+            {{ extendErrors.days }}
+          </p>
+          <p v-else class="text-sm text-gray-500 mt-1">
+            Minimálne 1 deň, maximálne 365 dní
+          </p>
         </div>
 
         <div class="flex gap-3 justify-end">
@@ -163,9 +200,7 @@
       title="Potvrdiť vymazanie"
       @close="showDeleteConfirm = false"
     >
-      <p class="mb-6 text-gray-700">
-        Naozaj chcete vymazať toto požičanie?
-      </p>
+      <p class="mb-6 text-gray-700">Naozaj chcete vymazať toto požičanie?</p>
       <div class="flex gap-3 justify-end">
         <button
           @click="showDeleteConfirm = false"
@@ -185,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLoansStore } from "../stores/loans.js";
 import { useAuthStore } from "../stores/auth.js";
@@ -205,6 +240,22 @@ const isAdmin = computed(() => authStore.isAdmin);
 const showExtendModal = ref(false);
 const showDeleteConfirm = ref(false);
 const extendDays = ref(7);
+
+const extendErrors = reactive({
+  days: "",
+});
+
+const validateExtendDays = () => {
+  if (!extendDays.value) {
+    extendErrors.days = "Počet dní je povinný";
+  } else if (extendDays.value < 1) {
+    extendErrors.days = "Minimálne 1 deň";
+  } else if (extendDays.value > 365) {
+    extendErrors.days = "Maximálne 365 dní";
+  } else {
+    extendErrors.days = "";
+  }
+};
 
 const formatDate = (date) => {
   if (!date) return "";
@@ -275,12 +326,19 @@ const handleReturn = async () => {
 };
 
 const handleExtend = async () => {
+  validateExtendDays();
+  if (extendErrors.days) return;
+
   try {
     await loansStore.extendLoan(route.params.id, extendDays.value);
     showExtendModal.value = false;
+    extendDays.value = 7;
+    extendErrors.days = "";
     alert("Požičanie úspešne predĺžené");
   } catch (err) {
-    alert("Chyba pri predlžovaní požičania");
+    alert(
+      "Chyba pri predlžovaní požičania: " + (err.message || "Neznáma chyba"),
+    );
   }
 };
 

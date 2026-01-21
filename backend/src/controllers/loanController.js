@@ -218,6 +218,12 @@ export const extendLoan = async (req, res, next) => {
       throw error;
     }
 
+    if (days > 365) {
+      const error = new Error("Maximálne je možné predĺžiť o 365 dní");
+      error.status = 400;
+      throw error;
+    }
+
     const loan = await Loan.findById(req.params.id);
 
     if (!loan) {

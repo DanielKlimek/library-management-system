@@ -172,12 +172,16 @@
           </label>
           <input
             v-model="loanForm.dueDate"
+            @blur="validateLoanDueDate"
             type="date"
             :min="minDueDate"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            :class="{ 'border-red-500': loanErrors.dueDate, 'border-gray-300': !loanErrors.dueDate }"
           />
-          <p class="text-sm text-gray-500 mt-1">
+          <p v-if="loanErrors.dueDate" class="text-red-500 text-sm mt-1">
+            {{ loanErrors.dueDate }}
+          </p>
+          <p v-else class="text-sm text-gray-500 mt-1">
             Minimálne dnes, odporúčame 14-30 dní
           </p>
         </div>
@@ -188,11 +192,16 @@
           </label>
           <textarea
             v-model="loanForm.notes"
+            @blur="validateLoanNotes"
             rows="3"
             maxlength="500"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            :class="{ 'border-red-500': loanErrors.notes, 'border-gray-300': !loanErrors.notes }"
             placeholder="Voliteľné poznámky..."
           ></textarea>
+          <p v-if="loanErrors.notes" class="text-red-500 text-sm mt-1">
+            {{ loanErrors.notes }}
+          </p>
         </div>
 
         <div class="flex gap-3 justify-end">
@@ -257,10 +266,33 @@ const loanForm = reactive({
   notes: "",
 });
 
+const loanErrors = reactive({
+  dueDate: "",
+  notes: "",
+});
+
 const minDueDate = computed(() => {
   const today = new Date();
   return today.toISOString().split("T")[0];
 });
+
+const validateLoanDueDate = () => {
+  if (!loanForm.dueDate) {
+    loanErrors.dueDate = "Dátum vrátenia je povinný";
+  } else if (new Date(loanForm.dueDate) < new Date(minDueDate.value)) {
+    loanErrors.dueDate = "Dátum vrátenia nemôže byť v minulosti";
+  } else {
+    loanErrors.dueDate = "";
+  }
+};
+
+const validateLoanNotes = () => {
+  if (loanForm.notes && loanForm.notes.length > 500) {
+    loanErrors.notes = "Poznámky môžu mať max 500 znakov";
+  } else {
+    loanErrors.notes = "";
+  }
+};
 
 const validateReviewComment = () => {
   if (reviewForm.comment.length > 500) {
@@ -300,6 +332,11 @@ const loadData = async () => {
 const handleLoanBook = async () => {
   if (!user.value) return;
 
+  validateLoanDueDate();
+  validateLoanNotes();
+
+  if (loanErrors.dueDate || loanErrors.notes) return;
+
   try {
     const userId = user.value.id || user.value._id;
     await loansStore.createLoan({
@@ -312,6 +349,8 @@ const handleLoanBook = async () => {
     showLoanModal.value = false;
     loanForm.dueDate = "";
     loanForm.notes = "";
+    loanErrors.dueDate = "";
+    loanErrors.notes = "";
 
     await loadData();
     alert("Kniha úspešne požičaná!");
